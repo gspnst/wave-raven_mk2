@@ -42,7 +42,6 @@ $SUDO apt-get install -y \
   git build-essential cmake pkg-config \
   libboost-all-dev libcppunit-dev \
   libfftw3-dev libfftw3-dev \
-  libitpp-dev \
   swig doxygen \
   tshark wireshark-common \
   autoconf automake libtool \
@@ -133,6 +132,29 @@ PYEOF
   $SUDO ldconfig
   cd "$INSTALL_DIR"
   ok "gr-gsm installed → $(command -v grgsm_scanner 2>/dev/null || echo '/usr/local/bin/grgsm_scanner')"
+fi
+
+# ── 5b. libitpp (required by LTE-Cell-Scanner) ───────────────────────────────
+log "5b" "Installing libitpp (LTE-Cell-Scanner dependency)"
+if ldconfig -p | grep -q libitpp; then
+  skip
+elif apt-get install -y libitpp-dev 2>/dev/null; then
+  ok "libitpp-dev installed from apt"
+else
+  echo "  Building libitpp from source (~5 min)..."
+  ITPP_DIR="$HOME/src/itpp"
+  mkdir -p "$HOME/src"
+  [ -d "$ITPP_DIR" ] && rm -rf "$ITPP_DIR"
+  wget -q -O /tmp/itpp.tar.bz2     "https://sourceforge.net/projects/itpp/files/itpp/4.3.1/itpp-4.3.1.tar.bz2/download"
+  mkdir -p "$ITPP_DIR" && tar xf /tmp/itpp.tar.bz2 -C "$ITPP_DIR" --strip-components=1
+  mkdir -p "$ITPP_DIR/build" && cd "$ITPP_DIR/build"
+  cmake .. -DCMAKE_BUILD_TYPE=Release -Wno-dev
+  make -j"$CORES"
+  $SUDO make install
+  $SUDO ldconfig
+  cd "$INSTALL_DIR"
+  rm -f /tmp/itpp.tar.bz2
+  ok "libitpp built and installed from source"
 fi
 
 # ── 6. LTE-Cell-Scanner ───────────────────────────────────────────────────────
